@@ -24,7 +24,14 @@ export default NextAuth({
   adapter: MongoDBAdapter(clientPromise),
   callbacks: {
     async redirect({ url, baseUrl }) {
-      return baseUrl + "/api/auth/callback/google"; 
+      // Let NextAuth handle the redirect automatically
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allow redirects to the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      // Default fallback to homepage
+      return baseUrl
     },
   },
+  // Make sure the baseUrl matches what's configured in Google Cloud Console
+  // This should be http://localhost:3001 for local development
 });
