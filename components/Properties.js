@@ -10,6 +10,8 @@ import { ipfs } from '../util/ipfsUtil';
 
 const Properties = (props) => {
     const { post } = props;
+
+    console.log('here isthe post data',post);
     
     return (
         <Box sx={{ flexGrow: 1, marginTop: 6, marginLeft: 2, maxWidth: 280, minWidth: 280}}>
@@ -22,7 +24,7 @@ const Properties = (props) => {
                                     <CardMedia
                                         component="img"
                                         sx={{ height: 200}}
-                                        image={ipfs(post.images[0])}
+                                        image={post.images[0]}
                                         alt=""
                                     />
                                 </Grid>

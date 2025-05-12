@@ -19,6 +19,9 @@ export function useMarketplace() {
 export const MarketplaceProvider = ({ children }) => {
   const { data: signer } = useSigner();
   const [marketplace, setMarketplace] = useState(null)
+
+
+  console.log('marketplace',marketplace);
   useEffect(() => {
     const marketplaceContract = new ethers.Contract(MARKETPLACE_ADDRESS, marketplaceABI, signer || rpcProvider);
     setMarketplace(marketplaceContract);

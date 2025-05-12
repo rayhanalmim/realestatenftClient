@@ -82,7 +82,7 @@ const Main = () => {
         const items = await Promise.all(
             data.map(async (nft) => {
                 const tokenURI = await propertyContract.tokenURI(nft?.tokenId);
-                const metadata = await axios.get(`https://ipfs.io/ipfs/${tokenURI}`);
+                const metadata = await axios.get(`${tokenURI}`);
                 const property = {
                     areaSize: metadata.data.areaSize,
                     bathroomNum: metadata.data.bathroomNum,

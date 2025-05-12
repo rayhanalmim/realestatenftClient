@@ -48,7 +48,7 @@ const PropertyDetails = () => {
     const loadNFT = async () => {
         const data = await marketplace.getSpecificListing(id);
         const tokenURI = await propertyContract.tokenURI(data.tokenId);
-        const metadata = await axios.get(`https://ipfs.io/ipfs/${tokenURI}`);
+        const metadata = await axios.get(`${tokenURI}`);
         const property = {
             areaSize: metadata.data.areaSize,
             bathroomNum: metadata.data.bathroomNum,
