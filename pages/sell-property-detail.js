@@ -96,6 +96,9 @@ const SellPropertyDetail = () => {
 
     const { data: userData } = useAccount();
 
+
+    console.log("user data from the sell property detail page", userData);
+
     const { addToast } = useToasts();
 
     const router = useRouter();

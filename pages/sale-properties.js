@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import { Grid, Card, Container, Typography, Button } from "@mui/material";
 import AuthNavbar from "../components/AuthNavbar";
 import UserProperty from "../components/UserProperty";
@@ -7,9 +8,9 @@ import { useSession } from 'next-auth/react'
 import { useAccount, useSigner } from 'wagmi';
 import { useMarketplace } from "../context/MarketplaceContext";
 import { useProperty } from "../context/PropertyContext";
-import { useEffect, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
+import { ipfs } from "../util/ipfsUtil";
 
 
 const SaleProperties = () => {
@@ -36,34 +37,64 @@ const SaleProperties = () => {
     })
 
     useEffect(() => {
-        if (!marketplace || !account){
+        if (!marketplace) {
             setLoading(false);
             setIsAccountExist(false);
+            return;
         }
-        loadSellerNFTs();
-    }, [marketplace])
-
-
-    const loadSellerNFTs = async () => {
-        const data = await marketplace.getListingsCreated();
         
-        const items = await Promise.all(
-            data.map(async (nft) => {
-                const tokenURI = await propertyContract.tokenURI(nft?.tokenId);
-                const metadata = await axios.get(`${tokenURI}`);
-                const property = {
-                    location: metadata.data.location,
-                    images: metadata.data.images,
-                    seller: nft.seller,
-                    owner: nft.owner,
-                    tokenId: nft.tokenId.toNumber(),
-                    listingId: nft.listingId.toNumber(),
-                    price: nft.price,
-                };
-                return property;
-            })
-        );
-        setNFTs(items);
+        if (!account) {
+            setLoading(false);
+            setIsAccountExist(false);
+            return;
+        }
+        
+        loadNFTs();
+    }, [marketplace, account]);
+
+
+    const loadNFTs = async () => {
+        setLoading(true);
+        try {
+            // Use getListingsCreated() which is the correct function in the contract
+            const data = await marketplace.getListingsCreated();
+            const items = await Promise.all(
+                data.map(async (nft) => {
+                    try {
+                        const tokenURI = await propertyContract.tokenURI(nft?.tokenId);
+                        // Use our ipfs utility to ensure proper gateway access
+                        const formattedURI = ipfs(tokenURI);
+                        const metadata = await axios.get(formattedURI);
+                        const property = {
+                            areaSize: metadata.data.areaSize,
+                            bathroomNum: metadata.data.bathroomNum,
+                            bedroomNum: metadata.data.bedroomNum,
+                            detail: metadata.data.detail,
+                            location: metadata.data.location,
+                            overview: metadata.data.overview,
+                            pool: metadata.data.pool,
+                            propertyType: metadata.data.propertyType,
+                            title: metadata.data.title,
+                            images: metadata.data.images,
+                            seller: nft.seller,
+                            owner: nft.owner,
+                            tokenId: nft.tokenId.toNumber(),
+                            listingId: nft.listingId.toNumber(),
+                            price: nft.price,
+                        };
+                        return property;
+                    } catch (error) {
+                        console.error("Error loading NFT:", error);
+                        return null;
+                    }
+                })
+            );
+            // Filter out any null items from errors
+            const validItems = items.filter(item => item !== null);
+            setNFTs(validItems);
+        } catch (error) {
+            console.error("Error fetching listings:", error);
+        }
         setLoading(false);
     }
 
@@ -118,7 +149,7 @@ const SaleProperties = () => {
                 </Card>
                 <Container maxWidth="lg" sx={{ marginBottom: 10 }}>
                     {NFTs.map((nft) => (
-                        <UserProperty property={nft} />
+                        <UserProperty key={nft.listingId} property={nft} />
                     ))}
                 </Container>
                 <Footer />
