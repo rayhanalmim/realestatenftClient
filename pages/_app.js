@@ -9,7 +9,8 @@ import '../util/i18n'
 
 const client = createClient();
 
-axios.defaults.baseURL = "http://localhost:5000/api/v1";
+// Removed baseURL to avoid unnecessary server dependency
+// Each request now goes directly to the resource using ipfs utility
 
 function MyApp({ Component, pageProps }) {
   return (

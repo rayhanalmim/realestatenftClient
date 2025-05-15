@@ -11,6 +11,7 @@ import axios from 'axios';
 import { useMarketplace } from '../context/MarketplaceContext';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { ipfs } from '../util/ipfsUtil';
 
 
 const cityList = [
@@ -81,30 +82,37 @@ const Main = () => {
         const data = await marketplace.getAllListings();
         const items = await Promise.all(
             data.map(async (nft) => {
-                const tokenURI = await propertyContract.tokenURI(nft?.tokenId);
-                const metadata = await axios.get(`${tokenURI}`);
-                const property = {
-                    areaSize: metadata.data.areaSize,
-                    bathroomNum: metadata.data.bathroomNum,
-                    bedroomNum: metadata.data.bedroomNum,
-                    detail: metadata.data.detail,
-                    location: metadata.data.location,
-                    overview: metadata.data.overview,
-                    pool: metadata.data.pool,
-                    propertyType: metadata.data.propertyType,
-                    title: metadata.data.title,
-                    images: metadata.data.images,
-                    seller: nft.seller,
-                    owner: nft.owner,
-                    tokenId: nft.tokenId.toNumber(),
-                    listingId: nft.listingId.toNumber(),
-                    price: nft.price,
-                };
-                return property;
+                try {
+                    const tokenURI = await propertyContract.tokenURI(nft?.tokenId);
+                    const formattedURI = ipfs(tokenURI);
+                    const metadata = await axios.get(formattedURI);
+                    const property = {
+                        areaSize: metadata.data.areaSize,
+                        bathroomNum: metadata.data.bathroomNum,
+                        bedroomNum: metadata.data.bedroomNum,
+                        detail: metadata.data.detail,
+                        location: metadata.data.location,
+                        overview: metadata.data.overview,
+                        pool: metadata.data.pool,
+                        propertyType: metadata.data.propertyType,
+                        title: metadata.data.title,
+                        images: metadata.data.images,
+                        seller: nft.seller,
+                        owner: nft.owner,
+                        tokenId: nft.tokenId.toNumber(),
+                        listingId: nft.listingId.toNumber(),
+                        price: nft.price,
+                    };
+                    return property;
+                } catch (error) {
+                    console.error("Error loading NFT:", error);
+                    return null;
+                }
             })
         );
-        setNFTs(items);
-        setNFTsCopy(items);
+        const validItems = items.filter(item => item !== null);
+        setNFTs(validItems);
+        setNFTsCopy(validItems);
         setLoading(false);
     }
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router'
-import { Button, CardContent, Container, Typography, CardMedia, Card, Grid } from "@mui/material";
+import { Button, CardContent, Container, Typography, CardMedia, Card, Grid, Box, Paper, Divider } from "@mui/material";
 import SaveIcon from '@mui/icons-material/Save';
 import LoadingButton from '@mui/lab/LoadingButton';
 import AuthNavbar from "../../components/AuthNavbar";
@@ -17,10 +17,17 @@ import { ipfs } from '../../util/ipfsUtil';
 import { useAccount, useBalance, useSigner } from 'wagmi';
 import { useToasts } from 'react-toast-notifications'
 import { useTranslation } from 'react-i18next';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import BedIcon from '@mui/icons-material/Bed';
+import BathtubIcon from '@mui/icons-material/Bathtub';
+import SquareFootIcon from '@mui/icons-material/SquareFoot';
+import PoolIcon from '@mui/icons-material/Pool';
+import HomeWorkIcon from '@mui/icons-material/HomeWork';
 
 const PropertyDetails = () => {
     const [nft, setNft] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
     const { marketplace } = useMarketplace();
     const { propertyContract } = useProperty();
@@ -46,27 +53,32 @@ const PropertyDetails = () => {
     }, [id, marketplace])
 
     const loadNFT = async () => {
-        const data = await marketplace.getSpecificListing(id);
-        const tokenURI = await propertyContract.tokenURI(data.tokenId);
-        const metadata = await axios.get(`${tokenURI}`);
-        const property = {
-            areaSize: metadata.data.areaSize,
-            bathroomNum: metadata.data.bathroomNum,
-            bedroomNum: metadata.data.bedroomNum,
-            detail: metadata.data.detail,
-            location: metadata.data.location,
-            overview: metadata.data.overview,
-            pool: metadata.data.pool,
-            propertyType: metadata.data.propertyType,
-            title: metadata.data.title,
-            images: metadata.data.images,
-            seller: data.seller,
-            owner: data.owner,
-            tokenId: data.tokenId.toNumber(),
-            listingId: data.listingId.toNumber(),
-            price: data.price,
-        };
-        setNft(property);
+        try {
+            const data = await marketplace.getSpecificListing(id);
+            const tokenURI = await propertyContract.tokenURI(data.tokenId);
+            const formattedURI = ipfs(tokenURI);
+            const metadata = await axios.get(formattedURI);
+            const property = {
+                areaSize: metadata.data.areaSize,
+                bathroomNum: metadata.data.bathroomNum,
+                bedroomNum: metadata.data.bedroomNum,
+                detail: metadata.data.detail,
+                location: metadata.data.location,
+                overview: metadata.data.overview,
+                pool: metadata.data.pool,
+                propertyType: metadata.data.propertyType,
+                title: metadata.data.title,
+                images: metadata.data.images,
+                seller: data.seller,
+                owner: data.owner,
+                tokenId: data.tokenId.toNumber(),
+                listingId: data.listingId.toNumber(),
+                price: data.price,
+            };
+            setNft(property);
+        } catch (error) {
+            console.error("Error loading NFT details:", error);
+        }
     }
 
     const buy = async () => {
@@ -112,111 +124,179 @@ const PropertyDetails = () => {
         <>
             <div>
                 {status === 'unauthenticated' ? <NoAuthNavbar page="main" /> : <AuthNavbar />}
-                <Card sx={{ display: 'flex', backgroundColor: '#f5f5f5', boxShadow: 'none', marginBottom: 3}}>
-                    <Grid container justifyContent="space-between" spacing={2}>
-                        <Grid item sx={{ marginLeft: 10 }} xs={8}>
-                            <Grid>
-                                <Typography sx={{ fontFamily: 'Raleway', fontSize: 30, color: '#424242'}}>{nft.title}</Typography>
-                            </Grid>
-                            <Grid container sx={{ marginTop: 1}}>         
-                                <Typography sx={{ fontFamily: 'Raleway', fontSize: 25}}>{t("price_field")}: </Typography>
-                                <Typography sx={{ fontFamily: 'Raleway', fontSize: 35, color:'#c62828', marginLeft: 2, marginTop: -1}}>{ethers.utils.formatEther(nft.price)} ETH</Typography>
-                            </Grid>
+                
+                <Container maxWidth="xl" sx={{ py: 4 }}>
+                    <Typography variant="h4" component="h1" sx={{ fontFamily: 'Raleway', fontWeight: 'bold', mb: 3 }}>
+                        {nft.title}
+                    </Typography>
+                    
+                    <Grid container spacing={4}>
+                        {/* Left side - Images */}
+                        <Grid item xs={12} md={7}>
+                            <Box sx={{ position: 'relative', borderRadius: 2, overflow: 'hidden', boxShadow: 3 }}>
+                                <CardMedia
+                                    component="img"
+                                    height="450"
+                                    image={ipfs(nft.images[selectedImageIndex])}
+                                    alt={`Property image ${selectedImageIndex + 1}`}
+                                    sx={{ objectFit: 'cover' }}
+                                />
+                            </Box>
+                            
+                            {/* Thumbnail images */}
+                            <Box sx={{ display: 'flex', gap: 1, mt: 2, overflow: 'auto', pb: 1 }}>
+                                {nft.images.map((image, index) => (
+                                    <Box 
+                                        key={index} 
+                                        onClick={() => setSelectedImageIndex(index)}
+                                        sx={{ 
+                                            width: 100,
+                                            height: 70,
+                                            borderRadius: 1,
+                                            overflow: 'hidden',
+                                            cursor: 'pointer',
+                                            border: index === selectedImageIndex ? '3px solid #d32f2f' : 'none',
+                                            opacity: index === selectedImageIndex ? 1 : 0.7,
+                                            transition: 'all 0.2s',
+                                            '&:hover': { opacity: 1 }
+                                        }}
+                                    >
+                                        <CardMedia
+                                            component="img"
+                                            height="70"
+                                            image={ipfs(image)}
+                                            alt={`Thumbnail ${index + 1}`}
+                                            sx={{ objectFit: 'cover' }}
+                                        />
+                                    </Box>
+                                ))}
+                            </Box>
                         </Grid>
-                        {status === "unauthenticated" ? 
-                            <Grid /> 
-                            :
-                            <Grid item sx={{ marginTop: 3, marginRight: 5}} xs={2}> 
-                                {account ? 
-                                    <>
-                                        {!loading ? 
+                        
+                        {/* Right side - Property details */}
+                        <Grid item xs={12} md={5}>
+                            <Paper elevation={3} sx={{ p: 3, height: '100%', borderRadius: 2 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                    <Typography variant="h4" component="div" sx={{ color: '#d32f2f', fontWeight: 'bold' }}>
+                                        {ethers.utils.formatEther(nft.price)} ETH
+                                    </Typography>
+                                    
+                                    {status === "authenticated" && account && (
+                                        !loading ? (
                                             <Button 
                                                 onClick={() => buy()}
+                                                variant="contained"
                                                 sx={{ 
                                                     backgroundColor: '#d32f2f',
                                                     color: 'white', 
-                                                    width: 160, 
-                                                    height: 40, 
                                                     fontSize: 16, 
                                                     ':hover': { bgcolor: '#b71c1c'}, 
-                                                    textTransform: 'none'
+                                                    textTransform: 'none',
+                                                    px: 4,
+                                                    py: 1
                                                 }}
                                             >
                                                 {t("buy_property_button")}
                                             </Button>
-                                        :
+                                        ) : (
                                             <LoadingButton
                                                 loading
                                                 loadingPosition="start"
                                                 startIcon={<SaveIcon />}
                                                 variant="outlined"
-                                                sx={{ width: 180, textTransform: 'none', fontSize: 15, mb: 2 }}
-                                                >
+                                                sx={{ textTransform: 'none', fontSize: 15 }}
+                                            >
                                                 {t("loading_process_button")}
                                             </LoadingButton>
-                                        }
-                                    </>
-                                :
-                                    <>
-                                        <Button 
-                                            disabled
-                                            sx={{ 
-                                                backgroundColor: '#bdbdbd',
-                                                width: 160, 
-                                                height: 40, 
-                                                fontSize: 16,  
-                                                textTransform: 'none'
-                                            }}
-                                        >
-                                            {t("buy_property_button")}
-                                        </Button>
-                                        <Typography sx={{ fontSize: 13, marginTop: 0.5, color: "#9e9e9e"}}>
-                                            {t("connect_wallet_message")}
-                                        </Typography>   
-                                    </>         
-                                }
-                            </Grid>
-                        }
-                    </Grid>
-                </Card>
-                <Container maxWidth="lg">
-                    <Grid container alignItems="center" justifyContent="center"> 
-                        <Carousel sx= {{ width: 900, height: 500}} navButtonsAlwaysVisible >
-                            {nft.images.map((image, index) => (
-                                <Card key={index}>
-                                    <Grid style={{ display:'flex', justifyContent:'center' }}>
-                                        <CardMedia
-                                            component="img"
-                                            sx={{ width: '100%', height: 430}}
-                                            image={ipfs(image)}
-                                        />
+                                        )
+                                    )}
+                                    
+                                    {(status === "unauthenticated" || !account) && (
+                                        <Box>
+                                            <Button 
+                                                disabled
+                                                sx={{ 
+                                                    backgroundColor: '#bdbdbd',
+                                                    width: 160, 
+                                                    fontSize: 16,  
+                                                    textTransform: 'none',
+                                                    px: 3,
+                                                    py: 1
+                                                }}
+                                            >
+                                                {t("buy_property_button")}
+                                            </Button>
+                                            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: "#9e9e9e"}}>
+                                                {t("connect_wallet_message")}
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+                                
+                                <Divider sx={{ mb: 3 }} />
+                                
+                                {/* Location */}
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                                    <LocationOnIcon sx={{ color: '#d32f2f', mr: 1 }} />
+                                    <Typography variant="subtitle1">{nft.location}</Typography>
+                                </Box>
+                                
+                                {/* Property features */}
+                                <Grid container spacing={2} sx={{ mb: 3 }}>
+                                    <Grid item xs={6}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <BedIcon sx={{ mr: 1, color: '#757575' }} />
+                                            <Typography>{nft.bedroomNum} {t("bedroom_field")}</Typography>
+                                        </Box>
                                     </Grid>
-                                </Card>
-                            ))}
-                        </Carousel>
+                                    <Grid item xs={6}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <BathtubIcon sx={{ mr: 1, color: '#757575' }} />
+                                            <Typography>{nft.bathroomNum} {t("bathroom_field")}</Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <SquareFootIcon sx={{ mr: 1, color: '#757575' }} />
+                                            <Typography>{nft.areaSize} m²</Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <PoolIcon sx={{ mr: 1, color: '#757575' }} />
+                                            <Typography>{nft.pool ? t("yes_field") : t("no_field")}</Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <HomeWorkIcon sx={{ mr: 1, color: '#757575' }} />
+                                            <Typography>{nft.propertyType}</Typography>
+                                        </Box>
+                                    </Grid>
+                                </Grid>
+                                
+                                <Divider sx={{ mb: 3 }} />
+                                
+                                {/* Overview */}
+                                <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                    {t("property_info1")}
+                                </Typography>
+                                <Typography variant="body1" paragraph sx={{ color: '#424242' }}>
+                                    {nft.overview}
+                                </Typography>
+                                
+                                {/* Details */}
+                                <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', mb: 1, mt: 3 }}>
+                                    {t("property_info3")}
+                                </Typography>
+                                <Typography variant="body1" paragraph sx={{ color: '#424242' }}>
+                                    {nft.detail}
+                                </Typography>
+                            </Paper>
+                        </Grid>
                     </Grid>
-                    <Grid sx={{ marginLeft: 5, marginRight: 5}}>
-                        <Grid item>
-                            <PropertyInformation propertyInfo={nft} title={t("property_info1")} type="Overview"/>
-                        </Grid>
-                        <Grid item sx={{ marginTop: 3}}>
-                            <PropertyInformation propertyInfo={nft} title={t("property_info2")}/>
-                        </Grid>
-                        <Grid item sx={{ marginTop: 3}}>
-                            <Card sx={{ backgroundColor: '#f5f5f5' }}>
-                                <CardContent sx={{ marginLeft: 2, marginTop: 1}}>
-                                    <Typography sx={{ fontSize: 25, fontFamily: 'Raleway'}}>{t("property_info3")}</Typography>
-                                </CardContent>
-                                <CardContent sx={{ marginLeft: 2, marginTop: -1 }}>
-                                    <Typography sx={{ fontSize: 16}}>
-                                        {nft.detail}
-                                    </Typography>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                    </Grid>
-                    <Footer />
                 </Container>
+                <Footer />
             </div>
         </>
     )
